@@ -32,6 +32,17 @@ export class ClaudeClient {
     return stream;
   }
 
+  async generateDialogue(prompt: string) {
+    const response = await this.client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 300,
+      temperature: 0.7,
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    return response;
+  }
+
   private buildRecipePrompt(materials: string[], incantation: string): string {
     return `You are the alchemical engine for Alchemy 4D. Generate a reaction sequence for these materials and incantation.
 
