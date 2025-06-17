@@ -97,7 +97,7 @@ export class ImageGenerator {
             magicalEffects = ', subtle magical glow';
         }
 
-        const prompt = `A fantasy potion icon: ${bottleStyle} filled with ${colorHint} liquid, cork stopper, ${magicalEffects}. Clean white background, game icon style, detailed digital art, fantasy RPG aesthetic, professional game asset. The potion represents "${potion.name}" with effects: ${effects}. High quality, centered composition, perfect for a game inventory.`;
+        const prompt = `A fantasy potion icon in pixel art style: ${bottleStyle} filled with ${colorHint} liquid, cork stopper, ${magicalEffects}. Clean white background, 16-bit pixel art style, retro game aesthetic, professional game asset. The potion represents "${potion.name}" with effects: ${effects}. High quality pixel art, centered composition, perfect for a game inventory. DO NOT INCLUDE ANY TEXT OR LETTERS IN THE IMAGE.`;
 
         return prompt;
     }
