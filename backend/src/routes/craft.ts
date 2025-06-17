@@ -79,6 +79,27 @@ function checkQuestCompletion(recipe: Recipe): Quest[] {
 export async function craftRoutes(fastify: FastifyInstance) {
   const claudeClient = new ClaudeClient();
 
+  // Generate description for an item
+  fastify.post('/api/generate-description', async (request: FastifyRequest<{
+    Body: { itemName: string; itemType: 'reagent' | 'potion' | 'byproduct'; context?: string }
+  }>, reply) => {
+    const { itemName, itemType, context } = request.body;
+
+    if (!itemName || !itemType) {
+      return reply.code(400).send({ error: 'Item name and type are required' });
+    }
+
+    try {
+      const response = await claudeClient.generateItemDescription(itemName, itemType, context);
+      const description = response.content[0].type === 'text' ? response.content[0].text : '';
+
+      return { description: description.trim() };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Failed to generate description' });
+    }
+  });
+
   fastify.post('/api/craft', async (request: FastifyRequest<{ Body: CraftRequest }>, reply) => {
     const { materials, incantation } = request.body;
 
@@ -366,4 +387,70 @@ Respond as Master Aldric:`;
   fastify.get('/api/recipes', async () => {
     return Array.from(recipeCache.values());
   });
+
+  // LLM-powered location exploration
+  fastify.post('/api/explore-location', async (request: FastifyRequest<{
+    Body: { locationId: string; command: string; context?: any }
+  }>, reply) => {
+    const { locationId, command, context = {} } = request.body;
+
+    if (!locationId || !command) {
+      return reply.code(400).send({ error: 'Location ID and command are required' });
+    }
+
+    try {
+      const response = await claudeClient.generateLocationResponse(locationId, command, context);
+      const narrative = response.content[0].type === 'text' ? response.content[0].text : '';
+
+      return { narrative: narrative.trim() };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Failed to generate location response' });
+    }
+  });
+
+  // Generate dynamic reagent discovery
+  fastify.post('/api/generate-reagent', async (request: FastifyRequest<{
+    Body: { locationId: string; context?: any }
+  }>, reply) => {
+    const { locationId, context = {} } = request.body;
+
+    if (!locationId) {
+      return reply.code(400).send({ error: 'Location ID is required' });
+    }
+
+    try {
+      const response = await claudeClient.generateDynamicReagent(locationId, context);
+      const reagentText = response.content[0].type === 'text' ? response.content[0].text : '';
+
+      // Parse the structured response
+      const reagent = parseReagentResponse(reagentText);
+
+      return { reagent };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Failed to generate reagent' });
+    }
+  });
+}
+
+function parseReagentResponse(text: string) {
+  const lines = text.split('\n');
+  const reagent: any = {};
+
+  for (const line of lines) {
+    if (line.startsWith('NAME:')) {
+      reagent.name = line.replace('NAME:', '').trim();
+    } else if (line.startsWith('RARITY:')) {
+      reagent.rarity = line.replace('RARITY:', '').trim();
+    } else if (line.startsWith('AMOUNT:')) {
+      reagent.baseAmount = parseInt(line.replace('AMOUNT:', '').trim());
+    } else if (line.startsWith('UNIT:')) {
+      reagent.unit = line.replace('UNIT:', '').trim();
+    } else if (line.startsWith('DESCRIPTION:')) {
+      reagent.description = line.replace('DESCRIPTION:', '').trim();
+    }
+  }
+
+  return reagent;
 }

@@ -2,6 +2,7 @@ export interface Material {
   name: string;
   quantity: number;
   unit: string;
+  description?: string;
 }
 
 export interface ReactionStep {
@@ -10,12 +11,14 @@ export interface ReactionStep {
   temperature?: number;
   item?: string;
   quantity?: number;
+  itemDescription?: string;
 }
 
 export interface PotionResult {
   name: string;
   rarity: number;
   effects: string[];
+  description?: string;
 }
 
 export interface Recipe {

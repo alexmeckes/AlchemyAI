@@ -5,6 +5,7 @@ interface Material {
   name: string;
   quantity: number;
   unit: string;
+  description?: string;
 }
 
 interface ReactionStep {
@@ -13,12 +14,14 @@ interface ReactionStep {
   temperature?: number;
   item?: string;
   quantity?: number;
+  itemDescription?: string;
 }
 
 interface PotionResult {
   name: string;
   rarity: number;
   effects: string[];
+  description?: string;
 }
 
 interface Recipe {
@@ -57,12 +60,108 @@ interface Quest {
 }
 
 const STARTER_REAGENTS = [
-  { name: 'cobalt_echo', unit: 'ml' },
-  { name: 'lunar_sap', unit: 'ml' },
-  { name: 'snow_ash', unit: 'g' }
+  {
+    name: 'cobalt_echo',
+    unit: 'ml',
+    description: 'A shimmering azure liquid that resonates with faint musical tones when disturbed, containing traces of crystallized starlight.'
+  },
+  {
+    name: 'lunar_sap',
+    unit: 'ml',
+    description: 'Silvery, viscous fluid that glows softly in darkness, harvested from moonlit trees during the new moon.'
+  },
+  {
+    name: 'snow_ash',
+    unit: 'g',
+    description: 'Fine, pearl-white powder that feels cold to the touch and sparkles with tiny ice crystals that never melt.'
+  }
 ];
 
-type SidebarTab = 'inventory' | 'workbench' | 'quest' | 'market';
+interface GatheringLocation {
+  id: string;
+  name: string;
+  description: string;
+  reagents: {
+    name: string;
+    unit: string;
+    description: string;
+    baseAmount: number;
+    rarity: 'common' | 'uncommon' | 'rare';
+  }[];
+  cooldown: number; // minutes
+  lastGathered?: number; // timestamp
+}
+
+const GATHERING_LOCATIONS: GatheringLocation[] = [
+  {
+    id: 'crystal_caves',
+    name: 'Crystal Caves',
+    description: 'Deep underground caverns where magical crystals grow in eternal darkness, resonating with ancient power.',
+    reagents: [
+      {
+        name: 'cobalt_echo',
+        unit: 'ml',
+        description: 'A shimmering azure liquid that resonates with faint musical tones when disturbed, containing traces of crystallized starlight.',
+        baseAmount: 15,
+        rarity: 'common'
+      },
+      {
+        name: 'crystal_dust',
+        unit: 'g',
+        description: 'Glittering powder that sparkles with inner light, ground from the walls of ancient crystal formations.',
+        baseAmount: 8,
+        rarity: 'uncommon'
+      }
+    ],
+    cooldown: 30
+  },
+  {
+    id: 'moonlit_grove',
+    name: 'Moonlit Grove',
+    description: 'A sacred forest clearing where silver trees weep luminous sap under the eternal moonlight.',
+    reagents: [
+      {
+        name: 'lunar_sap',
+        unit: 'ml',
+        description: 'Silvery, viscous fluid that glows softly in darkness, harvested from moonlit trees during the new moon.',
+        baseAmount: 12,
+        rarity: 'common'
+      },
+      {
+        name: 'moon_petal',
+        unit: 'piece',
+        description: 'Delicate silver petals that shimmer with captured moonbeams, only blooming in pure lunar light.',
+        baseAmount: 3,
+        rarity: 'rare'
+      }
+    ],
+    cooldown: 45
+  },
+  {
+    id: 'frozen_peaks',
+    name: 'Frozen Peaks',
+    description: 'Windswept mountain summits where eternal winter preserves the essence of ancient storms.',
+    reagents: [
+      {
+        name: 'snow_ash',
+        unit: 'g',
+        description: 'Fine, pearl-white powder that feels cold to the touch and sparkles with tiny ice crystals that never melt.',
+        baseAmount: 10,
+        rarity: 'common'
+      },
+      {
+        name: 'frost_essence',
+        unit: 'ml',
+        description: 'Liquid cold itself, captured from the breath of winter winds and crystallized into pure essence.',
+        baseAmount: 6,
+        rarity: 'uncommon'
+      }
+    ],
+    cooldown: 60
+  }
+];
+
+type SidebarTab = 'inventory' | 'craft' | 'quests' | 'gather';
 
 function App() {
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -76,13 +175,36 @@ function App() {
   const [isOpeningMessage, setIsOpeningMessage] = useState(false);
 
   // Sidebar state
-  const [activeTab, setActiveTab] = useState<SidebarTab>('workbench');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('craft');
   const [inventory, setInventory] = useState<Material[]>([
-    { name: 'cobalt_echo', quantity: 50, unit: 'ml' },
-    { name: 'lunar_sap', quantity: 30, unit: 'ml' },
-    { name: 'snow_ash', quantity: 25, unit: 'g' }
+    {
+      name: 'cobalt_echo',
+      quantity: 50,
+      unit: 'ml',
+      description: 'A shimmering azure liquid that resonates with faint musical tones when disturbed, containing traces of crystallized starlight.'
+    },
+    {
+      name: 'lunar_sap',
+      quantity: 30,
+      unit: 'ml',
+      description: 'Silvery, viscous fluid that glows softly in darkness, harvested from moonlit trees during the new moon.'
+    },
+    {
+      name: 'snow_ash',
+      quantity: 25,
+      unit: 'g',
+      description: 'Fine, pearl-white powder that feels cold to the touch and sparkles with tiny ice crystals that never melt.'
+    }
   ]);
   const [craftedPotions, setCraftedPotions] = useState<PotionResult[]>([]);
+  const [gatheringLocations, setGatheringLocations] = useState<GatheringLocation[]>(GATHERING_LOCATIONS);
+  const [gatheringInProgress, setGatheringInProgress] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [gatherInput, setGatherInput] = useState('');
+  const [gatherOutput, setGatherOutput] = useState<string[]>([]);
+  const [gatherLoading, setGatherLoading] = useState(false);
+  const [discoveredReagents, setDiscoveredReagents] = useState<Set<string>>(new Set(['cobalt_echo', 'lunar_sap', 'snow_ash'])); // Start with basic reagents discovered
+  const [dynamicReagents, setDynamicReagents] = useState<{ [locationId: string]: any[] }>({});
 
   // Load quests on component mount
   useEffect(() => {
@@ -170,6 +292,488 @@ function App() {
 
   const removeMaterial = (index: number) => {
     setMaterials(materials.filter((_, i) => i !== index));
+  };
+
+  const canGatherFrom = (location: GatheringLocation): boolean => {
+    if (!location.lastGathered) return true;
+    const now = Date.now();
+    const cooldownMs = location.cooldown * 60 * 1000; // Convert minutes to milliseconds
+    return (now - location.lastGathered) >= cooldownMs;
+  };
+
+  const getTimeUntilNextGather = (location: GatheringLocation): string => {
+    if (!location.lastGathered) return '';
+    const now = Date.now();
+    const cooldownMs = location.cooldown * 60 * 1000;
+    const timeLeft = cooldownMs - (now - location.lastGathered);
+
+    if (timeLeft <= 0) return '';
+
+    const minutes = Math.ceil(timeLeft / (60 * 1000));
+    return `${minutes}m`;
+  };
+
+  const gatherFromLocation = async (locationId: string) => {
+    const location = gatheringLocations.find(loc => loc.id === locationId);
+    if (!location || !canGatherFrom(location) || gatheringInProgress) return;
+
+    setGatheringInProgress(locationId);
+
+    // Simulate gathering time (2-4 seconds)
+    const gatherTime = 2000 + Math.random() * 2000;
+
+    setTimeout(() => {
+      // Calculate gathered reagents
+      const gatheredReagents: Material[] = [];
+
+      location.reagents.forEach(reagent => {
+        let amount = reagent.baseAmount;
+
+        // Add randomness based on rarity
+        const randomMultiplier = 0.7 + Math.random() * 0.6; // 0.7 to 1.3
+        amount = Math.floor(amount * randomMultiplier);
+
+        // Rarity bonus chance
+        if (reagent.rarity === 'uncommon' && Math.random() < 0.3) {
+          amount += Math.floor(reagent.baseAmount * 0.5);
+        } else if (reagent.rarity === 'rare' && Math.random() < 0.15) {
+          amount += Math.floor(reagent.baseAmount * 0.8);
+        }
+
+        if (amount > 0) {
+          gatheredReagents.push({
+            name: reagent.name,
+            quantity: amount,
+            unit: reagent.unit,
+            description: reagent.description
+          });
+        }
+      });
+
+      // Update inventory
+      setInventory(prevInventory => {
+        const newInventory = [...prevInventory];
+
+        gatheredReagents.forEach(gathered => {
+          const existingIndex = newInventory.findIndex(item => item.name === gathered.name);
+          if (existingIndex >= 0) {
+            newInventory[existingIndex].quantity += gathered.quantity;
+          } else {
+            newInventory.push(gathered);
+          }
+        });
+
+        return newInventory;
+      });
+
+      // Update location cooldown
+      setGatheringLocations(prevLocations =>
+        prevLocations.map(loc =>
+          loc.id === locationId
+            ? { ...loc, lastGathered: Date.now() }
+            : loc
+        )
+      );
+
+      setGatheringInProgress(null);
+    }, gatherTime);
+  };
+
+  const selectLocation = (locationId: string) => {
+    setSelectedLocation(locationId);
+    const location = gatheringLocations.find(loc => loc.id === locationId);
+    if (location) {
+      setGatherOutput([
+        `🌍 You arrive at the ${location.name}`,
+        `${location.description}`,
+        '',
+        '💡 Try commands like:',
+        '• "examine" - Look around carefully',
+        '• "search" - Search for reagents',
+        '• "gather [reagent]" - Attempt to collect specific reagents',
+        '• "listen" - Listen to the environment',
+        '• "focus" - Channel your alchemical senses',
+        ''
+      ]);
+    }
+  };
+
+  const processGatherCommand = async (command: string) => {
+    if (!selectedLocation || gatherLoading) return;
+
+    const location = gatheringLocations.find(loc => loc.id === selectedLocation);
+    if (!location) return;
+
+    setGatherLoading(true);
+    const cmd = command.toLowerCase().trim();
+
+    // Add user command to output
+    setGatherOutput(prev => [...prev, `> ${command}`]);
+
+    try {
+      // Check if this is a gather command that should actually gather reagents
+      if (cmd.includes('gather') && canGatherFrom(location)) {
+        // Handle actual gathering
+        const gatherResponse = handleActualGathering(location, cmd);
+        setGatherOutput(prev => [...prev, ...gatherResponse, '']);
+        setGatherLoading(false);
+        return;
+      }
+
+      // For exploration commands, use LLM with discovery mechanics
+      const context = {
+        lastGathered: location.lastGathered,
+        canGather: canGatherFrom(location),
+        timeUntilNext: getTimeUntilNextGather(location),
+        discoveredReagents: Array.from(discoveredReagents),
+        undiscoveredCount: location.reagents.filter(r => !discoveredReagents.has(r.name)).length,
+        dynamicReagents: dynamicReagents[selectedLocation] || []
+      };
+
+      const response = await fetch('http://localhost:3001/api/explore-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationId: selectedLocation, command: cmd, context })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let narrative = data.narrative;
+
+        // Check for reagent discovery (30% chance on exploration commands)
+        if (['search', 'examine', 'focus', 'listen'].some(verb => cmd.includes(verb))) {
+          const discoveryChance = Math.random();
+
+          if (discoveryChance < 0.3) { // 30% chance
+            // First try to discover static reagents
+            const undiscoveredStatic = location.reagents.filter(r => !discoveredReagents.has(r.name));
+
+            if (undiscoveredStatic.length > 0 && Math.random() < 0.6) {
+              // 60% chance to discover static reagent
+              const reagent = undiscoveredStatic[Math.floor(Math.random() * undiscoveredStatic.length)];
+              setDiscoveredReagents(prev => new Set([...prev, reagent.name]));
+              narrative += `\n\n🎉 Discovery! You found ${reagent.name.replace('_', ' ')}!`;
+            } else {
+              // 40% chance to generate completely new dynamic reagent
+              await generateDynamicReagent(selectedLocation, cmd);
+            }
+          }
+        }
+
+        setGatherOutput(prev => [...prev, narrative, '']);
+      } else {
+        // Fallback to hardcoded responses
+        const fallbackResponse = getFallbackResponse(location, cmd);
+        setGatherOutput(prev => [...prev, ...fallbackResponse, '']);
+      }
+    } catch (error) {
+      console.error('Error processing command:', error);
+      const fallbackResponse = getFallbackResponse(location, cmd);
+      setGatherOutput(prev => [...prev, ...fallbackResponse, '']);
+    }
+
+    setGatherLoading(false);
+  };
+
+  const generateDynamicReagent = async (locationId: string, discoveryMethod: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/generate-reagent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId,
+          context: { discoveryMethod }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newReagent = data.reagent;
+
+        if (newReagent && newReagent.name) {
+          // Add to dynamic reagents for this location
+          setDynamicReagents(prev => ({
+            ...prev,
+            [locationId]: [...(prev[locationId] || []), newReagent]
+          }));
+
+          // Mark as discovered
+          setDiscoveredReagents(prev => new Set([...prev, newReagent.name]));
+
+          // Add to inventory with small amount
+          const amount = Math.floor(newReagent.baseAmount * (0.7 + Math.random() * 0.6));
+          setInventory(prev => {
+            const existingIndex = prev.findIndex(item => item.name === newReagent.name);
+            if (existingIndex >= 0) {
+              // Update existing item
+              const updated = [...prev];
+              updated[existingIndex] = {
+                ...updated[existingIndex],
+                quantity: updated[existingIndex].quantity + amount
+              };
+              return updated;
+            } else {
+              // Add new item
+              return [...prev, {
+                name: newReagent.name,
+                quantity: amount,
+                unit: newReagent.unit,
+                description: newReagent.description
+              }];
+            }
+          });
+
+          setGatherOutput(prev => [...prev,
+            `✨ INCREDIBLE DISCOVERY! ✨`,
+          `You have discovered a completely new reagent: ${newReagent.name.replace('_', ' ')}!`,
+          `${newReagent.description}`,
+          `You carefully collect ${amount} ${newReagent.unit} of this precious substance.`,
+          `Rarity: ${newReagent.rarity}`
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Error generating dynamic reagent:', error);
+    }
+  };
+
+  const handleActualGathering = (location: GatheringLocation, command: string): string[] => {
+    // Extract reagent name from command
+    const reagentName = command.replace('gather', '').trim();
+    const reagent = location.reagents.find(r =>
+      r.name.toLowerCase().includes(reagentName) || reagentName.includes(r.name.toLowerCase())
+    );
+
+    if (reagentName && reagent) {
+      return gatherSpecificReagent(location, reagent);
+    } else {
+      return gatherAllReagents(location);
+    }
+  };
+
+  const getFallbackResponse = (location: GatheringLocation, command: string): string[] => {
+    // Keep the original hardcoded responses as fallback
+    if (command.includes('examine') || command.includes('look')) {
+      return getExamineResponse(location);
+    } else if (command.includes('search')) {
+      return getSearchResponse(location);
+    } else if (command.includes('listen')) {
+      return getListenResponse(location);
+    } else if (command.includes('focus')) {
+      return getFocusResponse(location);
+    } else if (command.includes('help')) {
+      return [
+        '📖 Available commands:',
+        '• examine - Look around carefully',
+        '• search - Search for reagents',
+        '• gather [reagent] - Collect specific reagents',
+        '• listen - Listen to the environment',
+        '• focus - Channel your alchemical senses'
+      ];
+    } else {
+      return [
+        '❓ You try to ' + command + ', but nothing happens.',
+        'Type "help" for available commands.'
+      ];
+    }
+  };
+
+  const gatherSpecificReagent = (location: GatheringLocation, reagent: any): string[] => {
+    if (!canGatherFrom(location)) {
+      return [`You cannot gather from ${location.name} yet. ${getTimeUntilNextGather(location)}`];
+    }
+
+    // Calculate gathered amount with randomness
+    const randomMultiplier = 0.7 + Math.random() * 0.6; // 0.7 to 1.3
+    let amount = Math.floor(reagent.baseAmount * randomMultiplier);
+
+    // Rarity bonus chance
+    if (reagent.rarity === 'uncommon' && Math.random() < 0.3) {
+      amount += Math.floor(reagent.baseAmount * 0.2);
+    } else if (reagent.rarity === 'rare' && Math.random() < 0.15) {
+      amount += Math.floor(reagent.baseAmount * 0.5);
+    } else if (reagent.rarity === 'legendary' && Math.random() < 0.05) {
+      amount += Math.floor(reagent.baseAmount * 1.0);
+    }
+
+    // Update inventory
+    setInventory(prev => {
+      const existingIndex = prev.findIndex(item => item.name === reagent.name);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + amount
+        };
+        return updated;
+      } else {
+        return [...prev, {
+          name: reagent.name,
+          quantity: amount,
+          unit: reagent.unit,
+          description: reagent.description
+        }];
+      }
+    });
+
+    // Set cooldown
+    setGatheringLocations(prev => prev.map(loc =>
+      loc.id === location.id ? { ...loc, lastGathered: Date.now() } : loc
+    ));
+
+    return [
+      `You carefully gather ${amount} ${reagent.unit} of ${reagent.name.replace('_', ' ')}.`,
+      reagent.description || `A ${reagent.rarity} reagent from ${location.name}.`,
+      `${location.name} will replenish in ${location.cooldown} minutes.`
+    ];
+  };
+
+  const gatherAllReagents = (location: GatheringLocation): string[] => {
+    if (!canGatherFrom(location)) {
+      return [`You cannot gather from ${location.name} yet. ${getTimeUntilNextGather(location)}`];
+    }
+
+    const results: string[] = [];
+    const allReagents = [
+      ...location.reagents.filter(r => discoveredReagents.has(r.name)),
+      ...(dynamicReagents[location.id] || []).filter(r => discoveredReagents.has(r.name))
+    ];
+
+    allReagents.forEach(reagent => {
+      // Calculate gathered amount with randomness
+      const randomMultiplier = 0.7 + Math.random() * 0.6;
+      let amount = Math.floor(reagent.baseAmount * randomMultiplier);
+
+      // Rarity bonus chance
+      if (reagent.rarity === 'uncommon' && Math.random() < 0.3) {
+        amount += Math.floor(reagent.baseAmount * 0.2);
+      } else if (reagent.rarity === 'rare' && Math.random() < 0.15) {
+        amount += Math.floor(reagent.baseAmount * 0.5);
+      } else if (reagent.rarity === 'legendary' && Math.random() < 0.05) {
+        amount += Math.floor(reagent.baseAmount * 1.0);
+      }
+
+      // Update inventory
+      setInventory(prev => {
+        const existingIndex = prev.findIndex(item => item.name === reagent.name);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + amount
+          };
+          return updated;
+        } else {
+          return [...prev, {
+            name: reagent.name,
+            quantity: amount,
+            unit: reagent.unit,
+            description: reagent.description
+          }];
+        }
+      });
+
+      const prefix = (dynamicReagents[location.id] || []).some(r => r.name === reagent.name) ? '✨ ' : '';
+      results.push(`${prefix}${reagent.name.replace('_', ' ')}: ${amount} ${reagent.unit}`);
+    });
+
+    // Set cooldown
+    setGatheringLocations(prev => prev.map(loc =>
+      loc.id === location.id ? { ...loc, lastGathered: Date.now() } : loc
+    ));
+
+    return [
+      `You gather resources from ${location.name}:`,
+      ...results,
+      `${location.name} will replenish in ${location.cooldown} minutes.`
+    ];
+  };
+
+  const getExamineResponse = (location: GatheringLocation): string[] => {
+    const responses = {
+      crystal_caves: [
+        '🔍 The cavern walls shimmer with embedded crystals of every hue.',
+        'Cobalt-blue formations pulse with inner light, creating musical echoes.',
+        'Fine crystal dust sparkles in the air, catching what little light filters down.',
+        'Ancient formations suggest this place has been growing for millennia.'
+      ],
+      moonlit_grove: [
+        '🔍 Silver trees stretch toward an eternal moon, their bark gleaming.',
+        'Luminous sap weeps from carefully tended cuts in the tree trunks.',
+        'Delicate moon petals drift down like silver snow from the canopy.',
+        'The air itself seems to shimmer with captured moonbeams.'
+      ],
+      frozen_peaks: [
+        '🔍 Endless white stretches before you, broken by crystalline ice formations.',
+        'The wind carries particles of snow ash that never seem to melt.',
+        'Frost essence pools in natural ice bowls, liquid cold made manifest.',
+        'Your breath creates clouds that sparkle with tiny ice crystals.'
+      ]
+    };
+    return responses[location.id as keyof typeof responses] || ['You examine the area carefully.'];
+  };
+
+  const getSearchResponse = (location: GatheringLocation): string[] => {
+    const canGather = canGatherFrom(location);
+    if (!canGather) {
+      return [
+        '⏰ The area shows signs of recent gathering.',
+        `You must wait ${getTimeUntilNextGather(location)} before the reagents replenish.`
+      ];
+    }
+
+    const reagentList = location.reagents.map(r =>
+      `• ${r.name} (${r.rarity}) - ${r.description}`
+    ).join('\n');
+
+    return [
+      '🔎 You search the area thoroughly and discover:',
+      reagentList,
+      '',
+      `Use "gather [reagent name]" to collect them.`
+    ];
+  };
+
+  const getListenResponse = (location: GatheringLocation): string[] => {
+    const responses = {
+      crystal_caves: [
+        '👂 You hear the faint musical resonance of the crystals.',
+        'Deep underground, water drips in a rhythmic pattern.',
+        'The crystals seem to hum with ancient power.'
+      ],
+      moonlit_grove: [
+        '👂 Silver leaves rustle with an otherworldly whisper.',
+        'The eternal moon seems to sing a lullaby to the trees.',
+        'You hear the gentle drip of luminous sap.'
+      ],
+      frozen_peaks: [
+        '👂 The wind howls across the peaks with icy fury.',
+        'Ice crystals chime like distant bells in the breeze.',
+        'The silence between gusts is profound and absolute.'
+      ]
+    };
+    return responses[location.id as keyof typeof responses] || ['You listen carefully to your surroundings.'];
+  };
+
+  const getFocusResponse = (location: GatheringLocation): string[] => {
+    const canGather = canGatherFrom(location);
+    if (!canGather) {
+      return [
+        '🧘 You focus your alchemical senses...',
+        'The magical energies here are dormant, recently harvested.',
+        `They will regenerate in ${getTimeUntilNextGather(location)}.`
+      ];
+    }
+
+    const reagentCount = location.reagents.length;
+    const rareReagents = location.reagents.filter(r => r.rarity === 'rare').length;
+
+    return [
+      '🧘 You focus your alchemical senses...',
+      `You detect ${reagentCount} types of reagents in this area.`,
+      rareReagents > 0 ? `✨ You sense ${rareReagents} rare essence(s) nearby!` : '💫 The magical energies here are stable and ready for harvest.',
+      'The area pulses with harvestable energy.'
+    ];
   };
 
   const sendDialogue = async (questId: string, message: string) => {
@@ -441,10 +1045,10 @@ function App() {
           {/* Horizontal Tabs */}
           <div className="horizontal-tabs">
             <button
-              className={`tab-btn ${activeTab === 'workbench' ? 'active' : ''}`}
-              onClick={() => setActiveTab('workbench')}
+              className={`tab-btn ${activeTab === 'craft' ? 'active' : ''}`}
+              onClick={() => setActiveTab('craft')}
             >
-              ⚗️ Workbench
+              ⚗️ Craft
             </button>
             <button
               className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
@@ -453,22 +1057,23 @@ function App() {
               📦 Inventory
             </button>
             <button
-              className={`tab-btn ${activeTab === 'quest' ? 'active' : ''}`}
-              onClick={() => setActiveTab('quest')}
+              className={`tab-btn ${activeTab === 'quests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('quests')}
             >
               🎯 Quests
             </button>
+
             <button
-              className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`}
-              onClick={() => setActiveTab('market')}
+              className={`tab-btn ${activeTab === 'gather' ? 'active' : ''}`}
+              onClick={() => setActiveTab('gather')}
             >
-              🏪 Market
+              🌿 Gather
             </button>
           </div>
 
           {/* Tab Content */}
           <div className="tab-content">
-            {activeTab === 'workbench' && (
+            {activeTab === 'craft' && (
               <div className="workbench-content">
                 <h2>Reagents</h2>
                 <div className="reagent-picker">
@@ -477,6 +1082,7 @@ function App() {
                       key={reagent.name}
                       onClick={() => addMaterial(reagent)}
                       className="reagent-btn"
+                      title={reagent.description}
                     >
                       + {reagent.name}
                     </button>
@@ -494,7 +1100,7 @@ function App() {
                           type="number"
                           value={material.quantity}
                           onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 0)}
-                          className="quantity-input"
+                          min="1"
                         />
                         <span>{material.unit} {material.name}</span>
                         <button onClick={() => removeMaterial(index)} className="remove-btn">×</button>
@@ -506,10 +1112,10 @@ function App() {
                 <div className="incantation">
                   <h3>Incantation</h3>
                   <textarea
+                    className="incantation-input"
                     value={incantation}
                     onChange={(e) => setIncantation(e.target.value)}
-                    placeholder="distil slowly to 180°C, quench in snow-ash, bind patiently..."
-                    rows={3}
+                    placeholder="Speak your incantation..."
                   />
                 </div>
 
@@ -518,7 +1124,7 @@ function App() {
                   disabled={loading || materials.length === 0 || !incantation}
                   className="craft-btn"
                 >
-                  {loading ? 'Brewing...' : '🔥 Craft'}
+                  {loading ? 'Crafting...' : 'Craft Potion'}
                 </button>
               </div>
             )}
@@ -532,8 +1138,13 @@ function App() {
                   <div className="inventory-items">
                     {inventory.map((item, index) => (
                       <div key={index} className="inventory-item">
-                        <span className="item-name">{item.name}</span>
-                        <span className="item-quantity">{item.quantity} {item.unit}</span>
+                        <div className="item-info">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">{item.quantity} {item.unit}</span>
+                        </div>
+                        {item.description && (
+                          <div className="item-description">{item.description}</div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -550,6 +1161,9 @@ function App() {
                           <div className="potion-effects">
                             {potion.effects.join(', ')}
                           </div>
+                          {potion.description && (
+                            <div className="potion-description">{potion.description}</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -558,7 +1172,7 @@ function App() {
               </div>
             )}
 
-            {activeTab === 'quest' && (
+            {activeTab === 'quests' && (
               <div className="quest-content">
                 <h2>Quests</h2>
                 {quests.length === 0 ? (
@@ -579,31 +1193,189 @@ function App() {
               </div>
             )}
 
-            {activeTab === 'market' && (
-              <div className="market-content">
-                <h2>Market</h2>
-                <div className="market-items">
-                  {STARTER_REAGENTS.map(reagent => (
-                    <div key={reagent.name} className="market-item">
-                      <span className="item-name">{reagent.name}</span>
-                      <span className="item-price">10 gold / {reagent.unit}</span>
-                      <button className="buy-btn" disabled>Buy</button>
+            {activeTab === 'gather' && (
+              <div className="gather-content">
+                <h3>🌿 Gathering Locations</h3>
+                <div className="gathering-locations">
+                  {gatheringLocations.map(location => (
+                    <div key={location.id} className="location-card">
+                      <h4>{location.name}</h4>
+                      <p className="location-description">{location.description}</p>
+
+                      <div className="location-reagents">
+                        <strong>Known Reagents:</strong>
+                        <ul>
+                          {location.reagents
+                            .filter(reagent => discoveredReagents.has(reagent.name))
+                            .map((reagent, index) => (
+                              <li key={index} className={`reagent-${reagent.rarity}`}>
+                                {reagent.name.replace('_', ' ')} ({reagent.baseAmount}{reagent.unit}) - {reagent.rarity}
+                              </li>
+                            ))}
+                          {(dynamicReagents[location.id] || [])
+                            .filter(reagent => discoveredReagents.has(reagent.name))
+                            .map((reagent, index) => (
+                              <li key={`dynamic-${index}`} className={`reagent-${reagent.rarity}`}>
+                                ✨ {reagent.name.replace('_', ' ')} ({reagent.baseAmount}{reagent.unit}) - {reagent.rarity}
+                              </li>
+                            ))}
+                          {(location.reagents.filter(reagent => !discoveredReagents.has(reagent.name)).length +
+                            (dynamicReagents[location.id] || []).filter(reagent => !discoveredReagents.has(reagent.name)).length) > 0 && (
+                              <li className="reagent-unknown">
+                                ??? - {location.reagents.filter(reagent => !discoveredReagents.has(reagent.name)).length +
+                                  (dynamicReagents[location.id] || []).filter(reagent => !discoveredReagents.has(reagent.name)).length} unknown reagents await discovery...
+                              </li>
+                            )}
+                        </ul>
+                      </div>
+
+                      <div className="location-actions">
+                        <button
+                          className={`location-select-btn ${selectedLocation === location.id ? 'selected' : ''}`}
+                          onClick={() => selectLocation(location.id)}
+                        >
+                          {selectedLocation === location.id ? '📍 Selected' : '🗺️ Select Location'}
+                        </button>
+
+                        <div className="location-status">
+                          {gatheringInProgress === location.id ? (
+                            <span className="status-gathering">⏳ Gathering...</span>
+                          ) : canGatherFrom(location) ? (
+                            <span className="status-ready">✅ Ready</span>
+                          ) : (
+                            <span className="status-cooldown">
+                              ⏰ {getTimeUntilNextGather(location)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <p className="market-note">💰 Coming soon: Buy reagents with gold earned from quests!</p>
+
+                {selectedLocation && (
+                  <div className="selected-location-info">
+                    <h4>📍 Current Location: {gatheringLocations.find(loc => loc.id === selectedLocation)?.name}</h4>
+                    <p>Use the text interface on the right to explore and gather reagents!</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
         <div className="output-section">
-          <h2>Cauldron Output</h2>
-          <div className="output">
-            {output.map((line, index) => (
-              <div key={index} className="output-line">{line}</div>
-            ))}
-          </div>
+          <h3>
+            {activeTab === 'craft' && '🧪 Cauldron Output'}
+            {activeTab === 'inventory' && '📦 Potion Collection'}
+            {activeTab === 'gather' && '🌍 Location Explorer'}
+            {activeTab === 'quests' && '📜 Quest Journal'}
+          </h3>
+
+          {activeTab === 'craft' && (
+            <div className="craft-output">
+              {output.length > 0 ? (
+                <>
+                  {output.map((line, index) => (
+                    <div key={index} className="output-line">{line}</div>
+                  ))}
+                </>
+              ) : (
+                <div className="no-output">Select reagents and craft a potion to see results here.</div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'inventory' && (
+            <div className="potion-collection">
+              {craftedPotions.length > 0 ? (
+                <div className="potions-grid">
+                  {craftedPotions.map((potion, index) => (
+                    <div key={index} className="potion-card">
+                      <h4 className="potion-name">{potion.name}</h4>
+                      <p className="potion-description">{potion.description}</p>
+                      <div className="potion-effects">
+                        <strong>Effects:</strong>
+                        <ul>
+                          {potion.effects.map((effect, effectIndex) => (
+                            <li key={effectIndex}>{effect}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-potions">No potions crafted yet. Visit the Craft tab to create your first potion!</p>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'gather' && (
+            <div className="gather-output">
+              {selectedLocation ? (
+                <>
+                  <div className="gather-text-output">
+                    {gatherOutput.length > 0 ? (
+                      <div className="output-content">
+                        {gatherOutput.map((line, index) => (
+                          <p key={index} className="output-line">{line}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="no-output">Select a location to begin exploring...</p>
+                    )}
+                  </div>
+
+                  <div className="gather-input-section">
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        value={gatherInput}
+                        onChange={(e) => setGatherInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && gatherInput.trim() && !gatherLoading) {
+                            processGatherCommand(gatherInput.trim());
+                            setGatherInput('');
+                          }
+                        }}
+                        placeholder="Type a command (e.g., 'examine', 'search', 'gather cobalt_echo')..."
+                        className="gather-input"
+                        disabled={gatherLoading}
+                      />
+                      <button
+                        onClick={() => {
+                          if (gatherInput.trim() && !gatherLoading) {
+                            processGatherCommand(gatherInput.trim());
+                            setGatherInput('');
+                          }
+                        }}
+                        disabled={!gatherInput.trim() || gatherLoading}
+                        className="gather-submit-btn"
+                      >
+                        {gatherLoading ? '⏳' : '➤'}
+                      </button>
+                    </div>
+                    <p className="input-hint">
+                      💡 Try: examine, search, gather [reagent], listen, focus, help
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="no-location-selected">
+                  <p>🗺️ Select a gathering location to begin your adventure!</p>
+                  <p>Choose from the Crystal Caves, Moonlit Grove, or Frozen Peaks to start exploring.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'quests' && (
+            <div className="quest-output">
+              {/* Quest content will go here */}
+              <p className="no-output">Quest system coming soon...</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

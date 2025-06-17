@@ -420,21 +420,44 @@ textarea::placeholder {
   cursor: not-allowed;
 }
 
-.output {
-  background: #0f0f23;
-  border: 1px solid #4c1d95;
-  border-radius: 6px;
-  padding: 1rem;
-  height: 400px;
+.craft-output {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
   overflow-y: auto;
+  max-height: 400px;
   font-family: 'Courier New', monospace;
+  line-height: 1.5;
   text-align: left;
 }
 
-.output-line {
-  margin-bottom: 0.25rem;
-  line-height: 1.5;
+.craft-output .output-line {
+  margin: 4px 0;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  text-align: left;
   word-wrap: break-word;
+  line-height: 1.6;
+}
+
+.craft-output .output-line:first-child {
+  margin-top: 0;
+}
+
+.craft-output .output-line:last-child {
+  margin-bottom: 0;
+}
+
+.no-output {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
 }
 
 @media (max-width: 768px) {
@@ -687,15 +710,17 @@ textarea::placeholder {
 
 .incantation-input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 1rem;
   border: 1px solid #4c1d95;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #1a1a2e;
   color: white;
   font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   resize: vertical;
   margin-bottom: 1rem;
+  min-height: 120px;
+  line-height: 1.5;
 }
 
 .craft-btn {
@@ -812,12 +837,12 @@ textarea::placeholder {
 
 .market-note {
   color: #94a3b8;
-  font-size: 0.8rem;
   font-style: italic;
   text-align: center;
+  margin-top: 1.5rem;
   padding: 1rem;
-  background: rgba(76, 29, 149, 0.1);
-  border-radius: 4px;
+  background: rgba(100, 100, 150, 0.05);
+  border-radius: 6px;
 }
 
 /* Main Content Adjustments */
@@ -902,9 +927,8 @@ textarea::placeholder {
 .horizontal-tabs .tab-btn.active {
   background: rgba(100, 100, 150, 0.3);
   color: #ffffff;
-  border-color: #6366f1;
-  border-bottom: 2px solid #6366f1;
-  transform: translateY(-2px);
+  border-color: rgba(100, 100, 150, 0.5);
+  box-shadow: 0 4px 12px rgba(100, 100, 150, 0.2);
 }
 
 .horizontal-tabs .tab-btn.active::after {
@@ -914,7 +938,7 @@ textarea::placeholder {
   left: 0;
   right: 0;
   height: 2px;
-  background: #6366f1;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
 }
 
 .tab-content {
@@ -1129,4 +1153,457 @@ textarea::placeholder {
   padding: 1rem;
   background: rgba(100, 100, 150, 0.05);
   border-radius: 8px;
+}
+
+/* Item Description Styles */
+.inventory-item {
+  background: rgba(100, 100, 150, 0.1);
+  border: 1px solid rgba(100, 100, 150, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.inventory-item:hover {
+  background: rgba(100, 100, 150, 0.15);
+  border-color: rgba(100, 100, 150, 0.3);
+}
+
+.item-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #e0e0ff;
+  text-transform: capitalize;
+}
+
+.item-quantity {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.item-description {
+  color: #b0b0d0;
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.4;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(100, 100, 150, 0.1);
+}
+
+/* Potion Description Styles */
+.potion-description {
+  color: #b0b0d0;
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(100, 100, 150, 0.1);
+}
+
+/* Enhanced Reagent Button Tooltips */
+.reagent-btn {
+  position: relative;
+  background: rgba(100, 100, 150, 0.2);
+  border: 1px solid rgba(100, 100, 150, 0.4);
+  color: #b0b0d0;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.reagent-btn:hover {
+  background: rgba(100, 100, 150, 0.3);
+  color: #e0e0ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 100, 150, 0.2);
+}
+
+/* Inventory Section Styles */
+.inventory-section {
+  margin-bottom: 2rem;
+}
+
+.inventory-section h3 {
+  color: #e0e0ff;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(100, 100, 150, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.inventory-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Enhanced Potion Item Styles */
+.potion-item {
+  background: rgba(100, 100, 150, 0.1);
+  border: 1px solid rgba(100, 100, 150, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.potion-item:hover {
+  background: rgba(100, 100, 150, 0.15);
+  border-color: rgba(100, 100, 150, 0.3);
+  transform: translateY(-1px);
+}
+
+.potion-name {
+  font-weight: 600;
+  color: #e0e0ff;
+  margin-bottom: 0.25rem;
+}
+
+.potion-rarity {
+  color: #fbbf24;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.potion-effects {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Market Item Descriptions */
+.market-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(100, 100, 150, 0.1);
+  border: 1px solid rgba(100, 100, 150, 0.2);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.market-item:hover {
+  background: rgba(100, 100, 150, 0.15);
+}
+
+.market-item .item-name {
+  text-transform: capitalize;
+  color: #e0e0ff;
+}
+
+.market-item .item-price {
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.buy-btn {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buy-btn:not(:disabled):hover {
+  background: rgba(34, 197, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+.market-note {
+  color: #94a3b8;
+  font-style: italic;
+  text-align: center;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(100, 100, 150, 0.05);
+  border-radius: 6px;
+}
+
+/* Gather Tab Styles */
+.location-card {
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.location-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: #666;
+}
+
+.location-card h4 {
+  color: #e0e0e0;
+  margin: 0 0 10px 0;
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.location-description {
+  color: #b0b0b0;
+  font-style: italic;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.location-reagents {
+  margin-bottom: 15px;
+}
+
+.location-reagents strong {
+  color: #d0d0d0;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.location-reagents ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.location-reagents li {
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.reagent-common {
+  background: rgba(128, 128, 128, 0.2);
+  color: #a0a0a0;
+}
+
+.reagent-uncommon {
+  background: rgba(34, 139, 34, 0.2);
+  color: #90ee90;
+}
+
+.reagent-rare {
+  background: rgba(128, 0, 128, 0.2);
+  color: #dda0dd;
+}
+
+.location-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.location-select-btn {
+  background: linear-gradient(135deg, #4a4a4a, #3a3a3a);
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.location-select-btn:hover {
+  background: linear-gradient(135deg, #5a5a5a, #4a4a4a);
+  transform: translateY(-1px);
+}
+
+.location-select-btn.selected {
+  background: linear-gradient(135deg, #2d5a2d, #1a4a1a);
+  border-color: #4a8a4a;
+  color: #90ee90;
+}
+
+.location-status {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+}
+
+.status-gathering {
+  color: #ffd700;
+}
+
+.status-ready {
+  color: #90ee90;
+}
+
+.status-cooldown {
+  color: #ff6b6b;
+}
+
+.selected-location-info {
+  background: rgba(45, 90, 45, 0.2);
+  border: 1px solid #4a8a4a;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.selected-location-info h4 {
+  color: #90ee90;
+  margin: 0 0 8px 0;
+}
+
+.selected-location-info p {
+  color: #b0b0b0;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Gather Output Styles */
+.gather-output {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gather-text-output {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  overflow-y: auto;
+  max-height: 400px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.gather-text-output .output-line {
+  margin: 4px 0;
+  color: #e0e0e0;
+  text-align: left;
+}
+
+.gather-text-output .output-line:empty {
+  margin: 8px 0;
+}
+
+.gather-input-section {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.gather-input {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.gather-input:focus {
+  outline: none;
+  border-color: #4a8a4a;
+  box-shadow: 0 0 0 2px rgba(74, 138, 74, 0.2);
+}
+
+.gather-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gather-submit-btn {
+  background: linear-gradient(135deg, #4a8a4a, #3a7a3a);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 50px;
+}
+
+.gather-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a9a5a, #4a8a4a);
+  transform: translateY(-1px);
+}
+
+.gather-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.input-hint {
+  color: #888;
+  font-size: 0.85em;
+  margin: 0;
+  font-style: italic;
+}
+
+.no-location-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #888;
+}
+
+.no-location-selected p {
+  margin: 10px 0;
+  font-size: 1.1em;
+}
+
+.no-location-selected p:first-child {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #b0b0b0;
+}
+
+.reagent-unknown {
+  color: #888;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.reagent-unknown::before {
+  content: "🔍 ";
+}
+
+/* Discovery notification styling */
+.discovery-notification {
+  color: #4CAF50;
+  font-weight: bold;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+  border-left: 3px solid #4CAF50;
 }
