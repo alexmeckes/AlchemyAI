@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
 import { craftRoutes } from './routes/craft';
+import { ingredientRoutes } from './routes/ingredients';
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ fastify.get('/health', async (request, reply) => {
 
 // Register routes
 fastify.register(craftRoutes);
+fastify.register(ingredientRoutes);
 
 // Start server
 const start = async () => {

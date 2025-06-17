@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { IncantationEditor } from './components/IncantationEditor';
+import { IngredientTooltip } from './components/IngredientTooltip';
 
 interface Material {
   name: string;
