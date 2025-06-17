@@ -1,11 +1,17 @@
 import OpenAI from 'openai';
 import { PotionResult } from '../types/game.js';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 export class ImageGenerator {
+    private openai: OpenAI | null = null;
+
+    private getOpenAI(): OpenAI {
+        if (!this.openai) {
+            this.openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY,
+            });
+        }
+        return this.openai;
+    }
     async generatePotionIcon(potion: PotionResult): Promise<string | null> {
         try {
             // Create a detailed prompt for the potion icon
@@ -14,7 +20,7 @@ export class ImageGenerator {
             console.log(`Generating image for potion: ${potion.name}`);
             console.log(`Prompt: ${prompt}`);
 
-            const response = await openai.images.generate({
+            const response = await this.getOpenAI().images.generate({
                 model: "dall-e-3",
                 prompt: prompt,
                 n: 1,
@@ -97,10 +103,11 @@ export class ImageGenerator {
             magicalEffects = ', subtle magical glow';
         }
 
-        const prompt = `A fantasy potion icon in pixel art style: ${bottleStyle} filled with ${colorHint} liquid, cork stopper, ${magicalEffects}. Clean white background, 16-bit pixel art style, retro game aesthetic, professional game asset. The potion represents "${potion.name}" with effects: ${effects}. High quality pixel art, centered composition, perfect for a game inventory. DO NOT INCLUDE ANY TEXT OR LETTERS IN THE IMAGE.`;
+        const prompt = `A fantasy potion icon in pixel art style: ${bottleStyle} filled with ${colorHint} liquid, cork stopper, ${magicalEffects}. Transparent background, 16-bit pixel art style, retro game aesthetic, professional game asset. The potion represents "${potion.name}" with effects: ${effects}. High quality pixel art, centered composition, perfect for a game inventory. DO NOT INCLUDE ANY TEXT OR LETTERS IN THE IMAGE.`;
 
         return prompt;
     }
 }
 
-export const imageGenerator = new ImageGenerator(); 
+// Export the class, not an instance
+export default ImageGenerator; 

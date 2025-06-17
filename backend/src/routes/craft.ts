@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { ClaudeClient } from '../claude/client';
 import { generateRecipeHash } from '../engine/recipe-hash';
-import { imageGenerator } from '../openai/imageGenerator';
+import ImageGenerator from '../openai/imageGenerator';
 import { CraftRequest, Recipe, ReactionStep, PotionResult, Quest, QuestObjective, DialogueRequest, DialogueResponse, DialogueMessage, OpenMessageRequest } from '../types/game';
 
 // In-memory recipe cache for MVP
@@ -79,6 +79,24 @@ function checkQuestCompletion(recipe: Recipe): Quest[] {
 
 export async function craftRoutes(fastify: FastifyInstance) {
   const claudeClient = new ClaudeClient();
+  const imageGenerator = new ImageGenerator();
+
+  // Check if a recipe has an updated image
+  fastify.get('/api/recipe/:hash/image', async (request: FastifyRequest<{
+    Params: { hash: string }
+  }>, reply) => {
+    const { hash } = request.params;
+
+    const recipe = recipeCache.get(hash);
+    if (!recipe) {
+      return reply.code(404).send({ error: 'Recipe not found' });
+    }
+
+    return {
+      hasImage: !!recipe.result.imageUrl,
+      imageUrl: recipe.result.imageUrl || null
+    };
+  });
 
   // Generate description for an item
   fastify.post('/api/generate-description', async (request: FastifyRequest<{
@@ -190,14 +208,14 @@ export async function craftRoutes(fastify: FastifyInstance) {
         };
 
         // Generate potion icon in the background (don't wait for it)
-        imageGenerator.generatePotionIcon(recipe.result).then(imageUrl => {
+        imageGenerator.generatePotionIcon(recipe.result).then((imageUrl: string | null) => {
           if (imageUrl) {
             recipe.result.imageUrl = imageUrl;
             // Update cached recipe with image
             recipeCache.set(recipeHash, recipe);
             console.log(`Added image to potion: ${recipe.result.name}`);
           }
-        }).catch(error => {
+        }).catch((error: any) => {
           console.error('Failed to generate potion image:', error);
         });
 

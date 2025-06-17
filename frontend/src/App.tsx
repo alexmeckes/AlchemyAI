@@ -172,8 +172,6 @@ function App() {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [dialogueInput, setDialogueInput] = useState('');
   const [dialogueLoading, setDialogueLoading] = useState(false);
-  const [openingMessage, setOpeningMessage] = useState<string>('');
-  const [isOpeningMessage, setIsOpeningMessage] = useState(false);
 
   // Sidebar state
   const [activeTab, setActiveTab] = useState<SidebarTab>('craft');
@@ -198,6 +196,12 @@ function App() {
     }
   ]);
   const [craftedPotions, setCraftedPotions] = useState<PotionResult[]>([]);
+  const [imagePollingIntervals, setImagePollingIntervals] = useState<Map<string, number>>(new Map());
+  const [potionPreview, setPotionPreview] = useState<{
+    state: 'none' | 'loading' | 'revealed';
+    potion?: PotionResult;
+    recipeHash?: string;
+  }>({ state: 'none' });
   const [gatheringLocations, setGatheringLocations] = useState<GatheringLocation[]>(GATHERING_LOCATIONS);
   const [gatheringInProgress, setGatheringInProgress] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
@@ -222,12 +226,16 @@ function App() {
     };
 
     loadQuests();
+
+    // Cleanup intervals on unmount
+    return () => {
+      imagePollingIntervals.forEach(intervalId => {
+        clearInterval(intervalId);
+      });
+    };
   }, []);
 
   const openMessage = async (questId: string) => {
-    setIsOpeningMessage(true);
-    setOpeningMessage('');
-
     try {
       const response = await fetch('http://localhost:3001/api/open-message', {
         method: 'POST',
@@ -255,18 +263,12 @@ function App() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.type === 'typing') {
-                setOpeningMessage(data.content);
-                if (data.complete) {
-                  // Message is complete, refresh quests
-                  setTimeout(async () => {
-                    const questsResponse = await fetch('http://localhost:3001/api/quests');
-                    if (questsResponse.ok) {
-                      const questData = await questsResponse.json();
-                      setQuests(questData);
-                    }
-                    setIsOpeningMessage(false);
-                  }, 1000);
+              if (data.type === 'typing' && data.complete) {
+                // Immediately refresh quests to show the dialogue interface
+                const questsResponse = await fetch('http://localhost:3001/api/quests');
+                if (questsResponse.ok) {
+                  const questData = await questsResponse.json();
+                  setQuests(questData);
                 }
               }
             } catch (e) {
@@ -277,7 +279,6 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to open message:', error);
-      setIsOpeningMessage(false);
     }
   };
 
@@ -777,6 +778,84 @@ function App() {
     ];
   };
 
+  const pollForImage = async (recipeHash: string) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/recipe/${recipeHash}/image`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasImage && data.imageUrl) {
+          // Update the crafted potion with the new image
+          setCraftedPotions(prev =>
+            prev.map((potion, index) => {
+              // Find the potion by matching recipe hash
+              // We'll store the hash as a temporary property
+              if ((potion as any).recipeHash === recipeHash) {
+                const updatedPotion = { ...potion, imageUrl: data.imageUrl };
+                // Remove the temporary hash property
+                delete (updatedPotion as any).recipeHash;
+                return updatedPotion;
+              }
+              return potion;
+            })
+          );
+
+          // Update potion preview if this is the active preview
+          setPotionPreview(prev => {
+            if (prev.state === 'loading' && prev.recipeHash === recipeHash && prev.potion) {
+              return {
+                state: 'revealed',
+                potion: { ...prev.potion, imageUrl: data.imageUrl },
+                recipeHash
+              };
+            }
+            return prev;
+          });
+
+          // Clear the polling interval
+          const intervals = imagePollingIntervals;
+          const intervalId = intervals.get(recipeHash);
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervals.delete(recipeHash);
+            setImagePollingIntervals(new Map(intervals));
+          }
+
+          return true; // Image found
+        }
+      }
+    } catch (error) {
+      console.error('Error polling for image:', error);
+    }
+    return false; // No image yet
+  };
+
+  const startImagePolling = (recipeHash: string) => {
+    // Don't start polling if already polling for this recipe
+    if (imagePollingIntervals.has(recipeHash)) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      const imageFound = await pollForImage(recipeHash);
+      if (imageFound) {
+        // Polling will be cleared in pollForImage
+      }
+    }, 2000); // Poll every 2 seconds
+
+    setImagePollingIntervals(prev => new Map(prev.set(recipeHash, intervalId)));
+
+    // Stop polling after 60 seconds to avoid infinite polling
+    setTimeout(() => {
+      const intervals = imagePollingIntervals;
+      const currentIntervalId = intervals.get(recipeHash);
+      if (currentIntervalId === intervalId) {
+        clearInterval(intervalId);
+        intervals.delete(recipeHash);
+        setImagePollingIntervals(new Map(intervals));
+      }
+    }, 60000);
+  };
+
   const sendDialogue = async (questId: string, message: string) => {
     if (!message.trim()) return;
 
@@ -815,6 +894,7 @@ function App() {
 
     setLoading(true);
     setOutput(['🔮 Initiating alchemical process...']);
+    setPotionPreview({ state: 'none' }); // Clear previous preview
 
     try {
       const response = await fetch(`http://localhost:3001/api/craft`, {
@@ -901,8 +981,27 @@ function App() {
                       `🎯 Effects: ${recipe.result.effects.join(', ')}`
                     ];
 
-                    // Add crafted potion to inventory
-                    setCraftedPotions(prev => [...prev, recipe.result]);
+                    // Add crafted potion to inventory with temporary hash for tracking
+                    const potionWithHash = { ...recipe.result, recipeHash: recipe.hash };
+                    setCraftedPotions(prev => [...prev, potionWithHash]);
+
+                    // Set up potion preview
+                    if (recipe.result.imageUrl) {
+                      // Image already available - show immediately
+                      setPotionPreview({
+                        state: 'revealed',
+                        potion: recipe.result,
+                        recipeHash: recipe.hash
+                      });
+                    } else {
+                      // Show loading state and start polling
+                      setPotionPreview({
+                        state: 'loading',
+                        potion: recipe.result,
+                        recipeHash: recipe.hash
+                      });
+                      startImagePolling(recipe.hash);
+                    }
 
                     // Add quest completion messages
                     if (completedQuests.length > 0) {
@@ -958,25 +1057,13 @@ function App() {
             <button
               className="open-message-btn"
               onClick={() => openMessage(unopenedQuest.id)}
-              disabled={isOpeningMessage}
             >
-              {isOpeningMessage ? 'Opening...' : 'Open Message'}
+              Open Message
             </button>
           </div>
         </div>
       )}
 
-      {/* Message Opening Display */}
-      {isOpeningMessage && (
-        <div className="message-display">
-          <div className="message-header">
-            <h3>📜 Message from Master Aldric</h3>
-          </div>
-          <div className="message-content">
-            <p>{openingMessage}<span className="typing-cursor">|</span></p>
-          </div>
-        </div>
-      )}
 
       {/* Regular quest display */}
       {currentQuest && (
@@ -1157,11 +1244,17 @@ function App() {
                     <div className="potion-collection">
                       {craftedPotions.map((potion, index) => (
                         <div key={index} className="potion-item">
-                          {potion.imageUrl && (
-                            <div className="potion-image">
+                          <div className="potion-image">
+                            {potion.imageUrl ? (
                               <img src={potion.imageUrl} alt={potion.name} />
-                            </div>
-                          )}
+                            ) : (potion as any).recipeHash && imagePollingIntervals.has((potion as any).recipeHash) ? (
+                              <div className="potion-image-loading">
+                                ✨<br />Crafting<br />Icon...
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '2rem' }}>🧪</div>
+                            )}
+                          </div>
                           <div className="potion-info">
                             <div className="potion-header">
                               <h4 className="potion-name">{potion.name}</h4>
@@ -1289,6 +1382,81 @@ function App() {
                   {output.map((line, index) => (
                     <div key={index} className="output-line">{line}</div>
                   ))}
+
+                  {/* Potion Preview (Loot Box) */}
+                  {potionPreview.state !== 'none' && (
+                    <div className="potion-preview">
+                      {potionPreview.state === 'loading' && (
+                        <div className="potion-preview-loading">
+                          <div className="mystical-cauldron"></div>
+                          <div className="brewing-text">
+                            ✨ Your creation is taking shape...
+                          </div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+                            Brewing magical essence...
+                          </div>
+                        </div>
+                      )}
+
+                      {potionPreview.state === 'revealed' && potionPreview.potion && (
+                        <div className="potion-preview-revealed">
+                          <div className="reveal-title sparkle-text-fade">
+                            ✨ Behold your creation! ✨
+                          </div>
+
+                          <div className={`revealed-potion rarity-${potionPreview.potion.rarity}`}>
+                            <div className="revealed-potion-icon">
+                              {potionPreview.potion.imageUrl ? (
+                                <img src={potionPreview.potion.imageUrl} alt={potionPreview.potion.name} />
+                              ) : (
+                                <div style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '4rem',
+                                  background: 'linear-gradient(135deg, #4a90e2, #7b68ee)'
+                                }}>
+                                  🧪
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="revealed-potion-info">
+                              <div className="revealed-potion-name">
+                                {potionPreview.potion.name}
+                              </div>
+                              <div className="revealed-potion-rarity">
+                                <span className="rarity-stars">
+                                  {'★'.repeat(Math.min(potionPreview.potion.rarity, 5))}
+                                </span>
+                                {' '}
+                                <span style={{
+                                  color: potionPreview.potion.rarity >= 4 ? '#f59e0b' :
+                                    potionPreview.potion.rarity >= 3 ? '#a855f7' :
+                                      potionPreview.potion.rarity >= 2 ? '#3b82f6' : '#22c55e'
+                                }}>
+                                  {potionPreview.potion.rarity >= 5 ? 'Legendary' :
+                                    potionPreview.potion.rarity >= 4 ? 'Epic' :
+                                      potionPreview.potion.rarity >= 3 ? 'Rare' :
+                                        potionPreview.potion.rarity >= 2 ? 'Uncommon' : 'Common'}
+                                </span>
+                              </div>
+                              <div className="revealed-potion-effects">
+                                <strong>Effects:</strong>
+                                <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
+                                  {potionPreview.potion.effects.map((effect, index) => (
+                                    <li key={index}>{effect}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="no-output">Select reagents and craft a potion to see results here.</div>
@@ -1302,11 +1470,17 @@ function App() {
                 <div className="potions-grid">
                   {craftedPotions.map((potion, index) => (
                     <div key={index} className="potion-card">
-                      {potion.imageUrl && (
-                        <div className="potion-card-image">
+                      <div className="potion-card-image">
+                        {potion.imageUrl ? (
                           <img src={potion.imageUrl} alt={potion.name} />
-                        </div>
-                      )}
+                        ) : (potion as any).recipeHash && imagePollingIntervals.has((potion as any).recipeHash) ? (
+                          <div className="potion-card-image-loading">
+                            ✨ Crafting Icon...
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '3rem' }}>🧪</div>
+                        )}
+                      </div>
                       <div className="potion-card-content">
                         <h4 className="potion-name">{potion.name}</h4>
                         <p className="potion-description">{potion.description}</p>
