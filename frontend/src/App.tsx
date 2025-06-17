@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { IncantationEditor } from './components/IncantationEditor';
 
 interface Material {
   name: string;
@@ -227,13 +228,24 @@ function App() {
 
     loadQuests();
 
+    // Add event listener for incantation submit (Ctrl+Enter)
+    const handleIncantationSubmit = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.value && materials.length > 0 && !loading) {
+        craft();
+      }
+    };
+
+    document.addEventListener('incantation-submit', handleIncantationSubmit);
+
     // Cleanup intervals on unmount
     return () => {
       imagePollingIntervals.forEach(intervalId => {
         clearInterval(intervalId);
       });
+      document.removeEventListener('incantation-submit', handleIncantationSubmit);
     };
-  }, []);
+  }, [materials, loading]);
 
   const openMessage = async (questId: string) => {
     try {
@@ -1199,10 +1211,9 @@ function App() {
 
                 <div className="incantation">
                   <h3>Incantation</h3>
-                  <textarea
-                    className="incantation-input"
+                  <IncantationEditor
                     value={incantation}
-                    onChange={(e) => setIncantation(e.target.value)}
+                    onChange={setIncantation}
                     placeholder="Speak your incantation..."
                   />
                 </div>

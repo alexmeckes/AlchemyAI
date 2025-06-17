@@ -2061,3 +2061,110 @@ textarea::placeholder {
   border-radius: 4px;
   border-left: 3px solid #4CAF50;
 }
+
+/* Incantation Editor Styles */
+.incantation-editor {
+  margin-bottom: 1rem;
+}
+
+.grammar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legend-color {
+  font-family: "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
+  font-weight: 500;
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.legend-color.verb {
+  color: #8b5cf6;
+  font-weight: bold;
+}
+
+.legend-color.reagent {
+  color: #06b6d4;
+  text-decoration: underline;
+}
+
+.legend-color.quantity {
+  color: #f97316;
+  font-style: italic;
+}
+
+.legend-color.modifier {
+  color: #f59e0b;
+}
+
+.legend-color.rune {
+  color: #ec4899;
+  font-size: 1.1em;
+}
+
+.legend-color.comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.legend-label {
+  color: #d1d5db;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.example-incantations {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.examples-label {
+  font-size: 0.75rem;
+  color: #a78bfa;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.example-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  color: #d1d5db;
+  font-family: "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.example-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.example-btn:last-child {
+  margin-bottom: 0;
+}

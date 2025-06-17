@@ -1,0 +1,235 @@
+import React, { useEffect, useRef } from 'react';
+import { EditorView } from '@codemirror/view';
+import { basicSetup } from 'codemirror';
+import { EditorState } from '@codemirror/state';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { LanguageSupport, StreamLanguage } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+
+// Define the incantation grammar tokens
+const incantationTokens = {
+    verbs: ['distil', 'bind', 'quench', 'phase_shift', 'transmute', 'infuse', 'crystallize', 'dissolve', 'heat', 'cool', 'mix', 'separate'],
+    reagents: ['cobalt_echo', 'lunar_sap', 'moon_glass', 'dragon_scale', 'phoenix_feather', 'void_crystal', 'starlight_essence', 'shadow_moss'],
+    modifiers: ['patiently', 'vigorously', 'gently', 'rapidly', 'carefully', 'boldly', 'slowly', 'precisely'],
+    runes: ['⚡', '🔥', '❄️', '🌙', '⭐', '💎', '🌊', '🍃']
+};
+
+// Create the incantation language parser
+const incantationLanguage = StreamLanguage.define({
+    token(stream, state) {
+        // Skip whitespace
+        if (stream.eatSpace()) return null;
+
+        // Comments
+        if (stream.match('//')) {
+            stream.skipToEnd();
+            return 'comment';
+        }
+
+        // Numbers with units (quantities)
+        if (stream.match(/\d+\s*(ml|g|oz|drops?|pinch|handful)/)) {
+            return 'number';
+        }
+
+        // Runes
+        for (const rune of incantationTokens.runes) {
+            if (stream.match(rune)) {
+                return 'atom'; // Using atom for runes since special doesn't exist
+            }
+        }
+
+        // Match words
+        const word = stream.match(/\w+/);
+        if (word && Array.isArray(word)) {
+            const wordStr = word[0].toLowerCase();
+
+            // Check token types
+            if (incantationTokens.verbs.includes(wordStr)) {
+                return 'keyword';
+            }
+            if (incantationTokens.reagents.includes(wordStr)) {
+                return 'variable';
+            }
+            if (incantationTokens.modifiers.includes(wordStr)) {
+                return 'string';
+            }
+
+            return 'atom';
+        }
+
+        // Punctuation
+        if (stream.match(/[,;]/)) {
+            return 'punctuation';
+        }
+
+        // Default: consume one character
+        stream.next();
+        return null;
+    }
+});
+
+// Define the highlighting theme
+const incantationHighlight = HighlightStyle.define([
+    { tag: tags.keyword, color: '#8b5cf6', fontWeight: 'bold' }, // Verbs - Indigo
+    { tag: tags.variableName, color: '#06b6d4', textDecoration: 'underline' }, // Reagents - Aqua
+    { tag: tags.string, color: '#f59e0b' }, // Modifiers - Orange
+    { tag: tags.number, color: '#f97316', fontStyle: 'italic' }, // Quantities - Orange muted
+    { tag: tags.atom, color: '#ec4899', fontSize: '1.2em' }, // Runes - Neon gradient effect
+    { tag: tags.comment, color: '#6b7280', fontStyle: 'italic' }, // Comments - Grey
+    { tag: tags.punctuation, color: '#9ca3af' }, // Punctuation
+]);
+
+interface IncantationEditorProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}
+
+export const IncantationEditor: React.FC<IncantationEditorProps> = ({
+    value,
+    onChange,
+    placeholder = "Enter your incantation..."
+}) => {
+    const editorRef = useRef<HTMLDivElement>(null);
+    const viewRef = useRef<EditorView | null>(null);
+
+    // Example incantations to help users learn the grammar
+    const exampleIncantations = [
+        "distil cobalt_echo 25ml, bind lunar_sap 10ml patiently",
+        "heat snow_ash 15g rapidly; transmute ⚡ // lightning infusion",
+        "crystallize moon_glass 5ml gently, phase_shift slowly",
+        "infuse dragon_scale 3g vigorously; quench 🔥 carefully"
+    ];
+
+    const insertExample = (example: string) => {
+        onChange(example);
+        if (viewRef.current) {
+            viewRef.current.focus();
+        }
+    };
+
+    useEffect(() => {
+        if (!editorRef.current) return;
+
+        const startState = EditorState.create({
+            doc: value,
+            extensions: [
+                basicSetup,
+                new LanguageSupport(incantationLanguage),
+                syntaxHighlighting(incantationHighlight),
+                oneDark,
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        onChange(update.state.doc.toString());
+                    }
+                }),
+                EditorView.theme({
+                    '&': {
+                        fontSize: '14px',
+                        fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace'
+                    },
+                    '.cm-content': {
+                        padding: '12px',
+                        minHeight: '80px'
+                    },
+                    '.cm-focused': {
+                        outline: '2px solid #8b5cf6',
+                        outlineOffset: '2px'
+                    },
+                    '.cm-editor': {
+                        borderRadius: '8px'
+                    }
+                }),
+                EditorView.domEventHandlers({
+                    keydown: (event, view) => {
+                        // Handle Ctrl+Enter for quick submit
+                        if (event.ctrlKey && event.key === 'Enter') {
+                            event.preventDefault();
+                            // Dispatch custom event for parent to handle
+                            const submitEvent = new CustomEvent('incantation-submit', {
+                                detail: { value: view.state.doc.toString() }
+                            });
+                            editorRef.current?.dispatchEvent(submitEvent);
+                            return true;
+                        }
+                        return false;
+                    }
+                })
+            ]
+        });
+
+        const view = new EditorView({
+            state: startState,
+            parent: editorRef.current
+        });
+
+        viewRef.current = view;
+
+        return () => {
+            view.destroy();
+        };
+    }, []);
+
+    // Update editor content when value prop changes
+    useEffect(() => {
+        if (viewRef.current && value !== viewRef.current.state.doc.toString()) {
+            viewRef.current.dispatch({
+                changes: {
+                    from: 0,
+                    to: viewRef.current.state.doc.length,
+                    insert: value
+                }
+            });
+        }
+    }, [value]);
+
+    return (
+        <div className="incantation-editor">
+            <div ref={editorRef} />
+
+            {!value && (
+                <div className="example-incantations">
+                    <div className="examples-label">Try these examples:</div>
+                    {exampleIncantations.map((example, index) => (
+                        <button
+                            key={index}
+                            className="example-btn"
+                            onClick={() => insertExample(example)}
+                            title="Click to use this example"
+                        >
+                            {example}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="grammar-legend">
+                <div className="legend-item">
+                    <span className="legend-color verb">distil</span>
+                    <span className="legend-label">Verbs</span>
+                </div>
+                <div className="legend-item">
+                    <span className="legend-color reagent">cobalt_echo</span>
+                    <span className="legend-label">Reagents</span>
+                </div>
+                <div className="legend-item">
+                    <span className="legend-color quantity">25ml</span>
+                    <span className="legend-label">Quantities</span>
+                </div>
+                <div className="legend-item">
+                    <span className="legend-color modifier">patiently</span>
+                    <span className="legend-label">Modifiers</span>
+                </div>
+                <div className="legend-item">
+                    <span className="legend-color rune">⚡</span>
+                    <span className="legend-label">Runes</span>
+                </div>
+                <div className="legend-item">
+                    <span className="legend-color comment">// comments</span>
+                    <span className="legend-label">Comments</span>
+                </div>
+            </div>
+        </div>
+    );
+}; 
