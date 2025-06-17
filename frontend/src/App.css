@@ -2068,64 +2068,99 @@ textarea::placeholder {
 }
 
 .grammar-legend {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.legend-title {
+  color: #a78bfa;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  letter-spacing: 0.025em;
+}
+
+.legend-pattern {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   padding: 0.75rem;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  font-size: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.legend-item {
+.legend-separator {
+  color: #9ca3af;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.legend-examples {
   display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend-example {
+  font-family: "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  border-left: 3px solid rgba(139, 92, 246, 0.4);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .legend-color {
   font-family: "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
   font-weight: 500;
-  padding: 0.125rem 0.25rem;
+  padding: 0.125rem 0.3rem;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.3);
+  margin: 0 0.1rem;
 }
 
 .legend-color.verb {
   color: #8b5cf6;
   font-weight: bold;
+  background: rgba(139, 92, 246, 0.15);
 }
 
 .legend-color.reagent {
   color: #06b6d4;
   text-decoration: underline;
+  background: rgba(6, 182, 212, 0.15);
 }
 
 .legend-color.quantity {
   color: #f97316;
   font-style: italic;
+  background: rgba(249, 115, 22, 0.15);
 }
 
 .legend-color.modifier {
-  color: #f59e0b;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .legend-color.rune {
   color: #ec4899;
   font-size: 1.1em;
+  background: rgba(236, 72, 153, 0.15);
 }
 
 .legend-color.comment {
   color: #6b7280;
   font-style: italic;
-}
-
-.legend-label {
-  color: #d1d5db;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  background: rgba(107, 114, 128, 0.15);
 }
 
 .example-incantations {

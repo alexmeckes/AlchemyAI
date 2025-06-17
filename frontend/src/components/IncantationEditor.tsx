@@ -49,7 +49,7 @@ const incantationLanguage = StreamLanguage.define({
                 return 'keyword';
             }
             if (incantationTokens.reagents.includes(wordStr)) {
-                return 'variable';
+                return 'variableName';
             }
             if (incantationTokens.modifiers.includes(wordStr)) {
                 return 'string';
@@ -71,11 +71,11 @@ const incantationLanguage = StreamLanguage.define({
 
 // Define the highlighting theme
 const incantationHighlight = HighlightStyle.define([
-    { tag: tags.keyword, color: '#8b5cf6', fontWeight: 'bold' }, // Verbs - Indigo
-    { tag: tags.variableName, color: '#06b6d4', textDecoration: 'underline' }, // Reagents - Aqua
-    { tag: tags.string, color: '#f59e0b' }, // Modifiers - Orange
-    { tag: tags.number, color: '#f97316', fontStyle: 'italic' }, // Quantities - Orange muted
-    { tag: tags.atom, color: '#ec4899', fontSize: '1.2em' }, // Runes - Neon gradient effect
+    { tag: tags.keyword, color: '#8b5cf6', fontWeight: 'bold' }, // Verbs - Purple
+    { tag: tags.variableName, color: '#06b6d4', textDecoration: 'underline' }, // Reagents - Cyan
+    { tag: tags.string, color: '#10b981' }, // Modifiers - Green (changed from orange)
+    { tag: tags.number, color: '#f97316', fontStyle: 'italic' }, // Quantities - Orange
+    { tag: tags.atom, color: '#ec4899', fontSize: '1.2em' }, // Runes - Pink
     { tag: tags.comment, color: '#6b7280', fontStyle: 'italic' }, // Comments - Grey
     { tag: tags.punctuation, color: '#9ca3af' }, // Punctuation
 ]);
@@ -188,46 +188,49 @@ export const IncantationEditor: React.FC<IncantationEditorProps> = ({
         <div className="incantation-editor">
             <div ref={editorRef} />
 
-            {!value && (
-                <div className="example-incantations">
-                    <div className="examples-label">Try these examples:</div>
-                    {exampleIncantations.map((example, index) => (
-                        <button
-                            key={index}
-                            className="example-btn"
-                            onClick={() => insertExample(example)}
-                            title="Click to use this example"
-                        >
-                            {example}
-                        </button>
-                    ))}
-                </div>
-            )}
+            <div className="example-incantations">
+                <div className="examples-label">Examples:</div>
+                {exampleIncantations.map((example, index) => (
+                    <button
+                        key={index}
+                        className="example-btn"
+                        onClick={() => insertExample(example)}
+                        title="Click to use this example"
+                    >
+                        {example}
+                    </button>
+                ))}
+            </div>
 
             <div className="grammar-legend">
-                <div className="legend-item">
-                    <span className="legend-color verb">distil</span>
-                    <span className="legend-label">Verbs</span>
+                <div className="legend-title">Incantation Grammar:</div>
+                <div className="legend-pattern">
+                    <span className="legend-color verb">action</span>
+                    <span className="legend-separator">→</span>
+                    <span className="legend-color reagent">ingredient</span>
+                    <span className="legend-separator">+</span>
+                    <span className="legend-color quantity">amount</span>
+                    <span className="legend-separator">+</span>
+                    <span className="legend-color modifier">style</span>
+                    <span className="legend-separator">+</span>
+                    <span className="legend-color rune">magic</span>
                 </div>
-                <div className="legend-item">
-                    <span className="legend-color reagent">cobalt_echo</span>
-                    <span className="legend-label">Reagents</span>
-                </div>
-                <div className="legend-item">
-                    <span className="legend-color quantity">25ml</span>
-                    <span className="legend-label">Quantities</span>
-                </div>
-                <div className="legend-item">
-                    <span className="legend-color modifier">patiently</span>
-                    <span className="legend-label">Modifiers</span>
-                </div>
-                <div className="legend-item">
-                    <span className="legend-color rune">⚡</span>
-                    <span className="legend-label">Runes</span>
-                </div>
-                <div className="legend-item">
-                    <span className="legend-color comment">// comments</span>
-                    <span className="legend-label">Comments</span>
+                <div className="legend-examples">
+                    <div className="legend-example">
+                        <span className="legend-color verb">distil</span>
+                        <span className="legend-color reagent">cobalt_echo</span>
+                        <span className="legend-color quantity">25ml</span>
+                        <span className="legend-color modifier">patiently</span>
+                    </div>
+                    <div className="legend-example">
+                        <span className="legend-color verb">heat</span>
+                        <span className="legend-color reagent">moon_glass</span>
+                        <span className="legend-color quantity">10g</span>
+                        <span className="legend-color modifier">rapidly</span>;
+                        <span className="legend-color verb">infuse</span>
+                        <span className="legend-color rune">⚡</span>
+                        <span className="legend-color comment"> // lightning essence</span>
+                    </div>
                 </div>
             </div>
         </div>
