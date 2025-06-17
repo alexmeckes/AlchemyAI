@@ -14,7 +14,11 @@ Alchemy 4D is a text-based alchemy game where players use natural language incan
    cd frontend && npm install
    cd ../backend && npm install
    ```
-3. Copy `.env.example` to `.env` in the backend directory and add your Anthropic API key
+3. Copy `.env.example` to `.env` in the backend directory and add your API keys:
+   ```bash
+   ANTHROPIC_API_KEY=your_anthropic_api_key_here
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
 4. Run development servers:
    ```bash
    # From root directory
@@ -33,6 +37,7 @@ Alchemy 4D is a text-based alchemy game where players use natural language incan
 - **Language = Power**: Natural language commands drive all gameplay
 - **Deterministic Recipes**: Once discovered, recipes are forever reproducible
 - **Emergent Discovery**: New combinations generate unique results via Claude
+- **AI-Generated Potion Icons**: Custom DALL-E generated images for each unique potion
 - **Production Loops**: Grow and refine reagents in various habitats
 - **Dynamic Economy**: Nightly price updates and seasonal regulations
 

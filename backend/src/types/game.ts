@@ -19,6 +19,7 @@ export interface PotionResult {
   rarity: number;
   effects: string[];
   description?: string;
+  imageUrl?: string;
 }
 
 export interface Recipe {

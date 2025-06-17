@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { ClaudeClient } from '../claude/client';
 import { generateRecipeHash } from '../engine/recipe-hash';
+import { imageGenerator } from '../openai/imageGenerator';
 import { CraftRequest, Recipe, ReactionStep, PotionResult, Quest, QuestObjective, DialogueRequest, DialogueResponse, DialogueMessage, OpenMessageRequest } from '../types/game';
 
 // In-memory recipe cache for MVP
@@ -187,6 +188,18 @@ export async function craftRoutes(fastify: FastifyInstance) {
           result: recipeData.result,
           timestamp: new Date().toISOString()
         };
+
+        // Generate potion icon in the background (don't wait for it)
+        imageGenerator.generatePotionIcon(recipe.result).then(imageUrl => {
+          if (imageUrl) {
+            recipe.result.imageUrl = imageUrl;
+            // Update cached recipe with image
+            recipeCache.set(recipeHash, recipe);
+            console.log(`Added image to potion: ${recipe.result.name}`);
+          }
+        }).catch(error => {
+          console.error('Failed to generate potion image:', error);
+        });
 
         // Cache the recipe
         recipeCache.set(recipeHash, recipe);

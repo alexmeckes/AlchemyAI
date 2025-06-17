@@ -22,6 +22,7 @@ interface PotionResult {
   rarity: number;
   effects: string[];
   description?: string;
+  imageUrl?: string;
 }
 
 interface Recipe {
@@ -1138,12 +1139,12 @@ function App() {
                   <div className="inventory-items">
                     {inventory.map((item, index) => (
                       <div key={index} className="inventory-item">
-                        <div className="item-info">
-                          <span className="item-name">{item.name}</span>
+                        <div className="item-header">
+                          <h4 className="item-name">{item.name.replace(/_/g, ' ')}</h4>
                           <span className="item-quantity">{item.quantity} {item.unit}</span>
                         </div>
                         {item.description && (
-                          <div className="item-description">{item.description}</div>
+                          <p className="item-description">{item.description}</p>
                         )}
                       </div>
                     ))}
@@ -1156,14 +1157,23 @@ function App() {
                     <div className="potion-collection">
                       {craftedPotions.map((potion, index) => (
                         <div key={index} className="potion-item">
-                          <div className="potion-name">{potion.name}</div>
-                          <div className="potion-rarity">★{potion.rarity}</div>
-                          <div className="potion-effects">
-                            {potion.effects.join(', ')}
-                          </div>
-                          {potion.description && (
-                            <div className="potion-description">{potion.description}</div>
+                          {potion.imageUrl && (
+                            <div className="potion-image">
+                              <img src={potion.imageUrl} alt={potion.name} />
+                            </div>
                           )}
+                          <div className="potion-info">
+                            <div className="potion-header">
+                              <h4 className="potion-name">{potion.name}</h4>
+                              <span className="potion-rarity">★{potion.rarity}</span>
+                            </div>
+                            <div className="potion-effects">
+                              <strong>Effects:</strong> {potion.effects.join(', ')}
+                            </div>
+                            {potion.description && (
+                              <p className="potion-description">{potion.description}</p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1292,15 +1302,22 @@ function App() {
                 <div className="potions-grid">
                   {craftedPotions.map((potion, index) => (
                     <div key={index} className="potion-card">
-                      <h4 className="potion-name">{potion.name}</h4>
-                      <p className="potion-description">{potion.description}</p>
-                      <div className="potion-effects">
-                        <strong>Effects:</strong>
-                        <ul>
-                          {potion.effects.map((effect, effectIndex) => (
-                            <li key={effectIndex}>{effect}</li>
-                          ))}
-                        </ul>
+                      {potion.imageUrl && (
+                        <div className="potion-card-image">
+                          <img src={potion.imageUrl} alt={potion.name} />
+                        </div>
+                      )}
+                      <div className="potion-card-content">
+                        <h4 className="potion-name">{potion.name}</h4>
+                        <p className="potion-description">{potion.description}</p>
+                        <div className="potion-effects">
+                          <strong>Effects:</strong>
+                          <ul>
+                            {potion.effects.map((effect, effectIndex) => (
+                              <li key={effectIndex}>{effect}</li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   ))}
